@@ -1,0 +1,36 @@
+// Representative problems per pattern. Used as a strong deterministic signal
+// (a known title → its canonical pattern) and for future recommendations.
+// Each canonical problem lives under ONE primary pattern; secondaries come from
+// keyword scoring.
+export const PATTERN_EXAMPLES: Record<string, string[]> = {
+  "array": ["Best Time to Buy and Sell Stock", "Maximum Subarray", "Product of Array Except Self", "Rotate Array"],
+  "hashmap": ["Two Sum", "Group Anagrams", "Top K Frequent Elements", "Valid Anagram"],
+  "hashset": ["Contains Duplicate", "Longest Consecutive Sequence"],
+  "two-pointers": ["Valid Palindrome", "3Sum", "Container With Most Water", "Two Sum II", "Remove Duplicates from Sorted Array", "Move Zeroes"],
+  "sliding-window": ["Longest Substring Without Repeating Characters", "Minimum Window Substring", "Permutation in String", "Longest Repeating Character Replacement", "Fruit Into Baskets", "Maximum Sum Subarray of Size K"],
+  "binary-search": ["Binary Search", "Search in Rotated Sorted Array", "Find Minimum in Rotated Sorted Array", "Search Insert Position", "Koko Eating Bananas"],
+  "prefix-sum": ["Subarray Sum Equals K", "Range Sum Query - Immutable", "Continuous Subarray Sum"],
+  "linked-list": ["Reverse Linked List", "Merge Two Sorted Lists", "Reorder List", "Remove Nth Node From End of List", "Add Two Numbers"],
+  "fast-slow": ["Linked List Cycle", "Middle of the Linked List", "Happy Number", "Find the Duplicate Number"],
+  "stack": ["Valid Parentheses", "Min Stack", "Evaluate Reverse Polish Notation", "Simplify Path"],
+  "queue": ["Implement Queue using Stacks", "Number of Recent Calls", "Moving Average from Data Stream"],
+  "monotonic-stack": ["Daily Temperatures", "Next Greater Element", "Largest Rectangle in Histogram", "Stock Span"],
+  "monotonic-queue": ["Sliding Window Maximum"],
+  "heap": ["Kth Largest Element in an Array", "Top K Frequent Elements", "K Closest Points to Origin", "Find Median from Data Stream"],
+  "priority-queue": ["Merge k Sorted Lists", "Task Scheduler", "Network Delay Time"],
+  "greedy": ["Jump Game", "Gas Station", "Partition Labels"],
+  "recursion": ["Pow(x, n)", "Merge Two Sorted Lists"],
+  "backtracking": ["Subsets", "Combination Sum", "Permutations", "N-Queens", "Word Search", "Palindrome Partitioning"],
+  "tree-dfs": ["Maximum Depth of Binary Tree", "Validate Binary Search Tree", "Diameter of Binary Tree", "Path Sum", "Lowest Common Ancestor of a Binary Tree", "Binary Tree Inorder Traversal"],
+  "tree-bfs": ["Binary Tree Level Order Traversal", "Binary Tree Right Side View", "Binary Tree Zigzag Level Order Traversal"],
+  "trie": ["Implement Trie (Prefix Tree)", "Word Search II", "Design Add and Search Words Data Structure"],
+  "graph-dfs": ["Clone Graph", "Number of Connected Components in an Undirected Graph", "Pacific Atlantic Water Flow"],
+  "graph-bfs": ["Word Ladder", "Rotting Oranges", "Walls and Gates"],
+  "topological-sort": ["Course Schedule", "Course Schedule II", "Alien Dictionary"],
+  "union-find": ["Number of Provinces", "Redundant Connection", "Accounts Merge", "Graph Valid Tree"],
+  "matrix-traversal": ["Number of Islands", "Surrounded Regions", "Spiral Matrix", "Set Matrix Zeroes", "Max Area of Island"],
+  "intervals": ["Meeting Rooms", "Meeting Rooms II", "Non-overlapping Intervals"],
+  "merge-intervals": ["Merge Intervals", "Insert Interval"],
+  "bit-manipulation": ["Single Number", "Number of 1 Bits", "Counting Bits", "Sum of Two Integers"],
+  "dp": ["Climbing Stairs", "House Robber", "Coin Change", "Longest Increasing Subsequence", "Longest Common Subsequence", "Unique Paths", "Word Break", "Edit Distance"],
+};
