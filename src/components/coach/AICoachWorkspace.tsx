@@ -6,7 +6,7 @@ import { getCached, setCached } from "@/lib/clientCache";
 import { trackEvent, getHistory } from "@/lib/learning/tracker";
 import { getStats, getRecentProblems } from "@/lib/learning/analytics";
 import type { LearningStats, RecentProblem } from "@/lib/learning/types";
-import { VisualizersExplorer } from "@/components/visualizer/VisualizersExplorer";
+import { ExploreHub } from "@/components/visualizer/ExploreHub";
 import { RecentProblems } from "@/components/coach/RecentProblems";
 import { BarList } from "@/components/coach/BarList";
 import type { ResolvedProblem } from "@/types/ingestion";
@@ -149,9 +149,9 @@ export function AICoachWorkspace() {
         </div>
       </div>
 
-      {/* Concept-based learning — the DSA Visualizer Hub, directly on the main page */}
+      {/* Concept-based learning — the categorized DSA Visualizer Hub, on the main page */}
       <div className="border-t border-neutral-800 pt-6">
-        <VisualizersExplorer />
+        <ExploreHub />
       </div>
     </div>
   );
