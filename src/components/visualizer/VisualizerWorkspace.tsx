@@ -14,7 +14,7 @@ import { PatternBadge } from "@/components/visualizer/PatternBadge";
 
 const PROBLEMS = listProblems();
 
-export function VisualizerWorkspace() {
+export function VisualizerWorkspace({ initialProblemId }: { initialProblemId?: string } = {}) {
   const [problem, setProblem] = useState<VisualProblemMeta>(PROBLEMS[0]);
   const [arrayText, setArrayText] = useState(PROBLEMS[0].defaultInput.array.join(", "));
   const [targetText, setTargetText] = useState(String(PROBLEMS[0].defaultInput.target ?? ""));
@@ -33,6 +33,11 @@ export function VisualizerWorkspace() {
     setViz(null);
     setNote(null);
   }
+
+  useEffect(() => {
+    if (initialProblemId) selectProblem(initialProblemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProblemId]);
 
   function generate() {
     const parsedArray = parseArrayInput(arrayText);

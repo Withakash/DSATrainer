@@ -24,7 +24,7 @@ const FIELD_LABEL: Record<string, string> = {
   pos: "Cycle entry index (pos, -1 = none)",
 };
 
-export function LinkedListWorkspace() {
+export function LinkedListWorkspace({ initialProblemId }: { initialProblemId?: string } = {}) {
   const [problem, setProblem] = useState<LLProblemMeta>(PROBLEMS[0]);
   const [fields, setFields] = useState<Record<string, string>>(() => initFields(PROBLEMS[0]));
   const [mode, setMode] = useState<LearningMode>("beginner");
@@ -38,6 +38,11 @@ export function LinkedListWorkspace() {
     setFields(initFields(next));
     setViz(null);
   }
+
+  useEffect(() => {
+    if (initialProblemId) selectProblem(initialProblemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProblemId]);
 
   function generate() {
     const input: LLInput = { values: parseValues(fields.values ?? "") };

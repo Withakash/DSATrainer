@@ -20,7 +20,7 @@ import { PlaybackController } from "@/components/visualizer/graph/PlaybackContro
 
 const PROBLEMS = listGraphProblems();
 
-export function GraphWorkspace() {
+export function GraphWorkspace({ initialProblemId }: { initialProblemId?: string } = {}) {
   const [problem, setProblem] = useState<GraphProblemMeta>(PROBLEMS[0]);
   const [textField, setTextField] = useState(PROBLEMS[0].defaultInput.text);
   const [startField, setStartField] = useState(PROBLEMS[0].defaultInput.start ?? "");
@@ -35,6 +35,11 @@ export function GraphWorkspace() {
     setStartField(next.defaultInput.start ?? "");
     setViz(null);
   }
+
+  useEffect(() => {
+    if (initialProblemId) selectProblem(initialProblemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProblemId]);
 
   function generate() {
     setViz(buildGraphVisualization(problem.id, { text: textField, start: problem.needsStart ? startField : undefined }));

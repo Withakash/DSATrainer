@@ -35,13 +35,17 @@ const MODULES: { id: Module; label: string }[] = [
 // Houses the visualizer modules under the Visualize tab. New modules (Two
 // Pointer, Prefix Sum, Deque, Monotonic Queue, Tree…) drop in here without
 // touching the engines.
-export function VisualizerHub({ initialModule }: { initialModule?: Module } = {}) {
+export function VisualizerHub({ initialModule, initialProblemId }: { initialModule?: Module; initialProblemId?: string } = {}) {
   const [module, setModule] = useState<Module>(initialModule ?? "array");
 
   function select(id: Module) {
     setModule(id);
     recordVisualizerUse(MODULE_SKILL[id]);
   }
+
+  // Only pre-select the demo in the module it was launched for; once the user
+  // switches modules the pre-selection no longer applies.
+  const pid = module === initialModule ? initialProblemId : undefined;
 
   return (
     <div className="space-y-5">
@@ -59,14 +63,14 @@ export function VisualizerHub({ initialModule }: { initialModule?: Module } = {}
         ))}
       </div>
 
-      {module === "array" ? <VisualizerWorkspace />
-        : module === "sliding-window" ? <SlidingWindowWorkspace />
-        : module === "hashmap" ? <HashMapWorkspace />
-        : module === "linked-list" ? <LinkedListWorkspace />
-        : module === "stack-queue" ? <StackQueueWorkspace />
-        : module === "tree" ? <TreeWorkspace />
-        : module === "graph" ? <GraphWorkspace />
-        : <DPWorkspace />}
+      {module === "array" ? <VisualizerWorkspace initialProblemId={pid} />
+        : module === "sliding-window" ? <SlidingWindowWorkspace initialProblemId={pid} />
+        : module === "hashmap" ? <HashMapWorkspace initialProblemId={pid} />
+        : module === "linked-list" ? <LinkedListWorkspace initialProblemId={pid} />
+        : module === "stack-queue" ? <StackQueueWorkspace initialProblemId={pid} />
+        : module === "tree" ? <TreeWorkspace initialProblemId={pid} />
+        : module === "graph" ? <GraphWorkspace initialProblemId={pid} />
+        : <DPWorkspace initialProblemId={pid} />}
     </div>
   );
 }

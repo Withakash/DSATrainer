@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { postJson } from "@/lib/api";
 import { getCached, setCached } from "@/lib/clientCache";
-import { trackEvent } from "@/lib/learning/tracker";
+import { trackEvent, getHistory } from "@/lib/learning/tracker";
+import { getStats, getRecentProblems } from "@/lib/learning/analytics";
+import type { LearningStats, RecentProblem } from "@/lib/learning/types";
+import { VisualizerCardsGrid } from "@/components/visualizer/VisualizerCardsGrid";
+import { RecentProblems } from "@/components/coach/RecentProblems";
+import { BarList } from "@/components/coach/BarList";
+import type { VisualizerConcept } from "@/coach/visualizerConcepts";
 import type { ResolvedProblem } from "@/types/ingestion";
 import type { AnalyzerResult, SolverResult } from "@/types/modes";
 import { Section, List } from "@/components/solver/ui";
@@ -36,8 +42,10 @@ interface CoachResult {
   solverError?: string;
 }
 
-export function AICoachWorkspace() {
+export function AICoachWorkspace({ onLaunchVisualizer }: { onLaunchVisualizer?: (c: VisualizerConcept) => void } = {}) {
   const [input, setInput] = useState("");
+  const [home, setHome] = useState<{ recent: RecentProblem[]; stats: LearningStats } | null>(null);
+  useEffect(() => { const h = getHistory(); setHome({ recent: getRecentProblems(h), stats: getStats(h) }); }, []);
   const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [res, setRes] = useState<CoachResult | null>(null);
@@ -117,7 +125,18 @@ export function AICoachWorkspace() {
           {stage && <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-8 text-center text-sm text-neutral-500">{stage}</div>}
           {error && <div className="rounded-lg border border-red-900 bg-red-950/40 p-4 text-sm text-red-300">⚠️ {error}</div>}
           {res && <CoachFlow res={res} />}
-          {!stage && !error && !res && <p className="text-sm text-neutral-600">Submit a problem to begin — pattern, understanding, approaches, visualization, code, edge cases, and practice, all in one flow.</p>}
+          {!stage && !error && !res && (
+            <div className="space-y-6">
+              <p className="text-sm text-neutral-500">Submit a problem above for the full AI Coach flow — or learn a concept directly below (no AI needed).</p>
+              <section>
+                <h2 className="text-lg font-bold text-neutral-100">Explore DSA Visualizers</h2>
+                <p className="mb-3 mt-1 text-xs text-neutral-500">Concept-based learning — launch any visualizer step-by-step without submitting a problem.</p>
+                <VisualizerCardsGrid onLaunch={(c) => onLaunchVisualizer?.(c)} />
+              </section>
+              {home && home.recent.length > 0 && <RecentProblems problems={home.recent} />}
+              {home && <BarList title="Pattern Mastery" data={home.stats.patternStats} emptyText="Analyze problems to start tracking your pattern mastery." />}
+            </div>
+          )}
         </div>
       </div>
     </div>

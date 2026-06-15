@@ -17,7 +17,7 @@ import { PlaybackController } from "@/components/visualizer/tree/PlaybackControl
 
 const PROBLEMS = listTreeProblems();
 
-export function TreeWorkspace() {
+export function TreeWorkspace({ initialProblemId }: { initialProblemId?: string } = {}) {
   const [problem, setProblem] = useState<TreeProblemMeta>(PROBLEMS[0]);
   const [textField, setTextField] = useState(PROBLEMS[0].defaultInput.text);
   const [targetField, setTargetField] = useState(String(PROBLEMS[0].defaultInput.target ?? ""));
@@ -32,6 +32,11 @@ export function TreeWorkspace() {
     setTargetField(String(next.defaultInput.target ?? ""));
     setViz(null);
   }
+
+  useEffect(() => {
+    if (initialProblemId) selectProblem(initialProblemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProblemId]);
 
   function generate() {
     setViz(buildTreeVisualization(problem.id, {

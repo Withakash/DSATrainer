@@ -16,7 +16,7 @@ import { TimelineControls } from "@/components/visualizer/hashmap/TimelineContro
 
 const PROBLEMS = listHashProblems();
 
-export function HashMapWorkspace() {
+export function HashMapWorkspace({ initialProblemId }: { initialProblemId?: string } = {}) {
   const [problem, setProblem] = useState<HashProblemMeta>(PROBLEMS[0]);
   const [textField, setTextField] = useState(PROBLEMS[0].defaultInput.text);
   const [targetField, setTargetField] = useState(String(PROBLEMS[0].defaultInput.target ?? ""));
@@ -35,6 +35,11 @@ export function HashMapWorkspace() {
     setPatternField(next.defaultInput.pattern ?? "");
     setViz(null);
   }
+
+  useEffect(() => {
+    if (initialProblemId) selectProblem(initialProblemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProblemId]);
 
   function generate() {
     const built = buildHashVisualization(problem.id, {

@@ -16,7 +16,7 @@ import { PlaybackController } from "@/components/visualizer/dp/PlaybackControlle
 
 const PROBLEMS = listDpProblems();
 
-export function DPWorkspace() {
+export function DPWorkspace({ initialProblemId }: { initialProblemId?: string } = {}) {
   const [problem, setProblem] = useState<DpProblemMeta>(PROBLEMS[0]);
   const [mode, setMode] = useState<DpMode>(PROBLEMS[0].modes[0]);
   const [textField, setTextField] = useState(PROBLEMS[0].defaultInput.text);
@@ -31,6 +31,11 @@ export function DPWorkspace() {
     setTextField(next.defaultInput.text);
     setViz(null);
   }
+
+  useEffect(() => {
+    if (initialProblemId) selectProblem(initialProblemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProblemId]);
 
   function generate(m: DpMode = mode) {
     setViz(buildDpVisualization(problem.id, m, { text: textField }));

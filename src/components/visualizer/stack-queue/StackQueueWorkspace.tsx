@@ -16,7 +16,7 @@ import { PlaybackController } from "@/components/visualizer/stack-queue/Playback
 
 const PROBLEMS = listSQProblems();
 
-export function StackQueueWorkspace() {
+export function StackQueueWorkspace({ initialProblemId }: { initialProblemId?: string } = {}) {
   const [problem, setProblem] = useState<SQProblemMeta>(PROBLEMS[0]);
   const [textField, setTextField] = useState(PROBLEMS[0].defaultInput.text);
   const [viz, setViz] = useState<SQVisualization | null>(null);
@@ -29,6 +29,11 @@ export function StackQueueWorkspace() {
     setTextField(next.defaultInput.text);
     setViz(null);
   }
+
+  useEffect(() => {
+    if (initialProblemId) selectProblem(initialProblemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProblemId]);
 
   function generate() {
     setViz(buildSQVisualization(problem.id, { text: textField }));
