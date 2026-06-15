@@ -36,7 +36,8 @@ interface CoachResult {
   analyzer: AnalyzerResult | null;
   solver: SolverResult | null;
   related: RelatedProblems;
-  loadingAI: boolean;
+  loadingSolver: boolean; // solution code — always generated on submit
+  loadingAnalyzer: boolean; // analysis — only on demand (saves AI usage)
   analyzerError?: string;
   solverError?: string;
 }
@@ -61,38 +62,52 @@ export function AICoachWorkspace() {
     }
     trackEvent({ eventType: "problem_viewed", problemTitle: problem.title, difficulty: problem.difficulty, patterns: [], mode: "none" });
 
-    // STEP 1 — deterministic pattern detection runs first (no AI, instant).
+    // Pattern detection runs first — deterministic, no AI, instant.
     const detection = detectPatterns({ title: problem.title, statement: problem.statement });
     const vizModule = (detection.recommendedVisualizers[0]?.module ?? "array") as Module;
     const supporting = detection.recommendedVisualizers.filter((v) => v.role === "supporting").map((v) => v.module);
-    setStage(null);
-    setRes({ problem, detection, vizModule, supporting, analyzer: null, solver: null, related: { easier: null, similar: null, harder: null }, loadingAI: true });
+    const patternNames = [detection.primaryPattern.name, ...detection.secondaryPatterns.map((s) => s.name)];
+    const related = relatedProblems(patternNames, problem.title);
 
-    // Downstream AI (understanding + solution) runs after detection.
-    const cachedA = getCached<AnalyzerResult>(problem.statement, "analyzer");
+    setStage("Generating the solution…");
+    setRes({ problem, detection, vizModule, supporting, analyzer: null, solver: null, related, loadingSolver: true, loadingAnalyzer: false });
+
+    // ALWAYS generate the solution code. The analyzer (approaches, edge cases)
+    // is NOT called here — it runs only when the user clicks "Generate AI
+    // Analysis" (see runAnalysis), to save AI usage.
     const cachedS = getCached<SolverResult>(problem.statement, "solver");
-    const [aRes, sRes] = await Promise.allSettled([
-      cachedA ? Promise.resolve(cachedA) : postJson<AnalyzerResult>("/api/analyze", { problem: problem.statement }),
-      cachedS ? Promise.resolve(cachedS) : postJson<SolverResult>("/api/solve", { problem: problem.statement }),
-    ]);
-    const analyzer = aRes.status === "fulfilled" ? aRes.value : null;
-    const solver = sRes.status === "fulfilled" ? sRes.value : null;
-    if (analyzer && !cachedA) setCached(problem.statement, "analyzer", analyzer);
-    if (solver && !cachedS) setCached(problem.statement, "solver", solver);
-
-    const patternNames = analyzer?.patterns.map((p) => p.name) ?? [detection.primaryPattern.name];
-    if (analyzer) trackEvent({ eventType: "analyze_used", problemTitle: problem.title, difficulty: problem.difficulty, patterns: patternNames, mode: "analyzer" });
+    let solver: SolverResult | null = null;
+    let solverError: string | undefined;
+    try {
+      solver = cachedS ?? await postJson<SolverResult>("/api/solve", { problem: problem.statement });
+      if (solver && !cachedS) setCached(problem.statement, "solver", solver);
+    } catch (e) {
+      solverError = e instanceof Error ? e.message : "Solution generation failed.";
+    }
     if (solver) {
       trackEvent({ eventType: "solver_used", problemTitle: problem.title, difficulty: problem.difficulty, patterns: patternNames, mode: "solver" });
       trackEvent({ eventType: "solution_revealed", problemTitle: problem.title, difficulty: problem.difficulty, patterns: patternNames, mode: "solver" });
     }
+    setStage(null);
+    setRes((prev) => prev && { ...prev, solver, loadingSolver: false, solverError });
+  }
 
-    setRes((prev) => prev && {
-      ...prev, analyzer, solver, loadingAI: false,
-      related: relatedProblems(patternNames, problem.title),
-      analyzerError: aRes.status === "rejected" ? (aRes.reason instanceof Error ? aRes.reason.message : "Analysis failed.") : undefined,
-      solverError: sRes.status === "rejected" ? (sRes.reason instanceof Error ? sRes.reason.message : "Solution generation failed.") : undefined,
-    });
+  // On-demand AI analysis (approaches, complexity reasoning, edge cases). One AI
+  // call, triggered by a button — not on submit.
+  async function runAnalysis() {
+    if (!res || res.analyzer || res.loadingAnalyzer) return;
+    const problem = res.problem;
+    setRes((prev) => prev && { ...prev, loadingAnalyzer: true, analyzerError: undefined });
+    try {
+      const cachedA = getCached<AnalyzerResult>(problem.statement, "analyzer");
+      const analyzer = cachedA ?? await postJson<AnalyzerResult>("/api/analyze", { problem: problem.statement });
+      if (analyzer && !cachedA) setCached(problem.statement, "analyzer", analyzer);
+      const names = analyzer.patterns.map((p) => p.name);
+      trackEvent({ eventType: "analyze_used", problemTitle: problem.title, difficulty: problem.difficulty, patterns: names, mode: "analyzer" });
+      setRes((prev) => prev && { ...prev, analyzer, loadingAnalyzer: false });
+    } catch (e) {
+      setRes((prev) => prev && { ...prev, loadingAnalyzer: false, analyzerError: e instanceof Error ? e.message : "Analysis failed." });
+    }
   }
 
   return (
@@ -123,7 +138,7 @@ export function AICoachWorkspace() {
         <div className="mt-5 xl:mt-0">
           {stage && <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-8 text-center text-sm text-neutral-500">{stage}</div>}
           {error && <div className="rounded-lg border border-red-900 bg-red-950/40 p-4 text-sm text-red-300">⚠️ {error}</div>}
-          {res && <CoachFlow res={res} />}
+          {res && <CoachFlow res={res} onAnalyze={runAnalysis} />}
           {!stage && !error && !res && (
             <div className="space-y-4">
               <p className="text-sm text-neutral-500">Submit a problem above for the full AI Coach flow — or learn a concept directly from the Visualizer Hub below (no AI needed).</p>
@@ -150,7 +165,7 @@ function StepHead({ n, title }: { n: number; title: string }) {
   return <div className="mb-2 mt-1 text-sm font-semibold text-neutral-200">{n} · {title}</div>;
 }
 
-function CoachFlow({ res }: { res: CoachResult }) {
+function CoachFlow({ res, onAnalyze }: { res: CoachResult; onAnalyze: () => void }) {
   const a = res.analyzer;
   const d = res.detection;
   const complexity = analyzeComplexity(res.analyzer, res.solver, d.primaryPattern.id);
@@ -191,7 +206,7 @@ function CoachFlow({ res }: { res: CoachResult }) {
           </div>
         </div>
 
-        {/* Step 4 — Approach Evolution */}
+        {/* Step 4 — Approach Evolution (on-demand AI) */}
         <Section title="4 · Approach Evolution — Brute → Better → Optimal">
           {a ? (
             <div className="space-y-2">
@@ -203,14 +218,20 @@ function CoachFlow({ res }: { res: CoachResult }) {
                 </div>
               ))}
             </div>
-          ) : res.loadingAI ? <AILoading on label="Working out the approaches" /> : <p className="text-sm text-amber-400">⚠️ {res.analyzerError ?? "Analysis unavailable."}</p>}
+          ) : res.loadingAnalyzer ? <AILoading on label="Analyzing approaches & edge cases" /> : (
+            <div className="space-y-2">
+              <button onClick={onAnalyze} className="rounded-md border border-indigo-700 bg-indigo-950/30 px-4 py-2 text-sm font-medium text-indigo-300 hover:bg-indigo-900/30">✨ Generate AI Analysis</button>
+              <p className="text-xs text-neutral-500">One AI call adds the brute → optimal approaches, complexity reasoning, and edge cases &amp; interview traps. Pattern detection, the visualizer, and the full solution code are already shown without it.</p>
+              {res.analyzerError && <p className="text-xs text-amber-400">⚠️ {res.analyzerError}</p>}
+            </div>
+          )}
         </Section>
 
-        {/* Step 5 — Complexity Analysis */}
+        {/* Step 5 — Complexity Analysis (built from the solution; richer after AI analysis) */}
         <div>
           <StepHead n={5} title="Complexity Analysis" />
           {complexity ? <ComplexityComparisonPanel analysis={complexity} />
-            : res.loadingAI ? <AILoading on label="Computing complexity" /> : <p className="text-sm text-amber-400">Complexity needs the analysis or solution to load.</p>}
+            : res.loadingSolver ? <AILoading on label="Computing complexity" /> : <p className="text-sm text-neutral-500">Complexity appears once the solution loads.</p>}
         </div>
 
         {/* Step 6 — Visualization */}
@@ -226,7 +247,7 @@ function CoachFlow({ res }: { res: CoachResult }) {
         {/* Step 7 — Final Solution */}
         <Section title="7 · Final Solution (interview-ready)">
           {res.solver ? <SolverView data={res.solver} problemTitle={res.problem.title} difficulty={res.problem.difficulty} />
-            : res.loadingAI ? <AILoading on label="Generating commented solutions" /> : <p className="text-sm text-amber-400">⚠️ {res.solverError ?? "Solution unavailable."}</p>}
+            : res.loadingSolver ? <AILoading on label="Generating commented solutions" /> : <p className="text-sm text-amber-400">⚠️ {res.solverError ?? "Solution unavailable."}</p>}
         </Section>
 
         {/* Step 8 — Edge Cases */}
@@ -245,7 +266,7 @@ function CoachFlow({ res }: { res: CoachResult }) {
             {([["Easier", res.related.easier], ["Similar", res.related.similar], ["Harder", res.related.harder]] as const).map(([label, p]) => (
               <div key={label} className="rounded-md border border-neutral-800 bg-neutral-950/40 p-3">
                 <div className="text-[10px] uppercase tracking-wide text-neutral-500">{label}</div>
-                {p ? <><div className="mt-0.5 text-sm font-medium text-neutral-200">{p.title}</div><div className="text-xs text-neutral-500">{p.difficulty}</div></> : <div className="mt-0.5 text-xs text-neutral-600">{res.loadingAI ? "…" : "—"}</div>}
+                {p ? <><div className="mt-0.5 text-sm font-medium text-neutral-200">{p.title}</div><div className="text-xs text-neutral-500">{p.difficulty}</div></> : <div className="mt-0.5 text-xs text-neutral-600">—</div>}
               </div>
             ))}
           </div>
